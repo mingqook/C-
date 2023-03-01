@@ -481,3 +481,132 @@ int main() {
 }
 ```
 
+
+
+### 11.6 묵시적 형변환
+
+#### 11.6.1 묵시적 형변환의 개념
+
+묵시적 형변환 : 특별한 말 없이 형변환이 일어나는 현상 <-> 명시적 형변환
+
+
+
+#### 11.6.2 형변환 생성자 오버로딩
+
+ex11-08.cpp 파일 생성
+
+```c++
+#include <iostream>
+#include <string>
+using namespace std;
+
+
+class Item{
+    public:
+        Item() {
+            cout << "Item()" << endl;
+        }
+        Item(int num) : num(num) {
+            cout << "Item(int)" << endl;
+        }
+        Item(string name) : name(name){
+            cout << "Item(string)" << endl;
+        }
+        Item(int num, string name) : num(num), name(name) {
+            cout << "Item()" << endl;
+        }
+    private:
+        int num;
+        string name;
+};
+
+int main() {
+    
+    cout << "=====A======" << endl;
+    Item a1 = Item(1);
+    Item a2(2);
+    Item a3 = (Item)3;
+    Item a4 = 4;
+    Item a5, a6, a7;;
+    a5 = Item(5);
+    a6 = 6;
+    a7 = (Item)7;
+
+    cout << "=====B======" << endl;
+    Item b4 = Item("Stone");
+    
+    cout << "=====C======" << endl;
+    Item c1 = Item(1, "Stone");
+    Item c2(2, "Dirt");
+    Item c4 = { 3, "Wood"};
+    Item c5, c6;
+    c5 = Item(4, "Grass");
+    c6 = { 5, "Water"}
+}
+```
+
+다른 타입에서 어떤 클래스로의 형변환이 그 클래스의 생성자를 통해 가능
+
+
+
+#### 11.6.3 형변환 연산자 오버로딩
+
+형변환 연산자 : 어떤 클래스에서 다른 타입으로 형변환이 가능해지도록 해주는 연산자
+
+형변환 연산자에서는 연산자의 이름이 곧 리턴 타입이기 때문에 리턴 타입을 생략
+
+형변환을 할 때는 자기 자신 이외에는 특별히 받을 매개변수도 없음
+
+ex11-09.cpp 파일 생성
+
+```c++
+#include <iostream>
+#include <string>
+using namespace std;
+
+
+class Item{
+    public:
+        Item() {
+        }
+        Item(int num) : num(num) {
+        }
+        Item(string name) : name(name){
+        }
+        Item(int num, string name) : num(num), name(name) {
+        }
+
+        operator int() const {
+            cout << "Item::operator int()" << endl;
+
+            return num;
+        }
+
+        operator string() const {
+            cout << "Item::operator string()" << endl;
+
+            return name;
+        }
+
+    private:
+        int num;
+        string name;
+};
+
+int main() {
+    
+    Item i1(1, "Stone");
+    int inum = i1;
+    string iname = i1;
+    
+    cout << inum << endl;
+    cout << iname << endl;
+}
+```
+
+
+
+#### 11.6.4 explicit 키워드
+
+explicit 키워드 : 키워드가 붙은 생성자는 형변환을 목적으로 하는 생성자가 아니고, 만일 형변환을 한다면 명시적인 형변환만 허용
+
