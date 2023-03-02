@@ -803,3 +803,446 @@ int main() {
 
 
 
+### 12.7 상속 관계에서의 형변환
+
+#### 12.7.1 업캐스팅
+
+업캐스팅 : 자식 클래스 타입에 대한 참조(포인터 또는 레퍼런스)를 부모 타입에 대한 것으로 형변환
+
+모든 업캐스팅은 묵시적으로 일어날 수 있음
+
+ex12-12.cpp 파일 생성
+
+```c++
+#include <iostream>
+using namespace std;
+
+
+struct Animal {
+    float xpos = 1;
+    float ypos = 2;
+};
+
+struct FlyingAnimal : public Animal {
+    float zpos = 3;
+};
+
+void printAnimals(Aniaml *a, int n) {
+    for (int i=0; i < n; i++) {
+        cout << "(" << a[i].xpos << ", " << a[i].ypos << ")" << endl;
+    }
+};
+
+int main() {
+
+    FlyingAnimal *arr = new FlyingAnimal[5];
+
+    printAnimals(arr, 5);
+    delete[] arr;
+
+}
+```
+
+
+
+더블포인터 활용
+
+ex12-13.cpp 파일 생성
+
+```c++
+#include <iostream>
+using namespace std;
+
+
+struct Animal {
+    float xpos = 1;
+    float ypos = 2;
+    virtual ~Animal() {}
+};
+
+struct FlyingAnimal : public Animal {
+    float zpos = 3;
+};
+
+void printAnimals(Aniaml *a, int n) {
+    for (int i=0; i < n; i++) {
+        cout << "(" << a[i] -> xpos << ", " << a[i] -> ypos << ")" << endl;
+    }
+};
+
+int main() {
+
+    Animal **a = new Animal*[5];
+
+    for (int i = 0; i <5; i++) {
+        a[i] = new FlyingAnimal;
+    }
+
+    printAnimals(a, 5);
+
+    for (int i = 0; i<5; i++) {
+        delete a[i];
+    }
+
+    delete[] a;
+}
+```
+
+
+
+#### 12.7.2 다운캐스팅
+
+다운캐스팅 : 부모에서 자식으로의 형변환
+
+다운캐스팅은 언제나 성립하지는 않음
+
+다운캐스팅을 위해서는 static_cast를 활용
+
+ex12-14.cpp 파일 생성
+
+```c++
+#include <iostream>
+using namespace std;
+
+
+struct Base {
+    int a = 1;
+    virtual ~Base() {}
+};
+
+struct Drv1 : Base {
+    float x = 3.14;
+};
+
+struct Drv2 : Base {
+    int y = 3;
+};
+
+int main() {
+
+    Base *b = new Drv1;
+    Drv1 *d1 = static_cast<Drv1*>(b);
+
+    cout << d1->x << endl;
+    delete b;
+    
+}
+```
+
+
+
+다운캐스팅이 잘못된 경우
+
+ex12-15.cpp 파일 생성
+
+```c++
+#include <iostream>
+using namespace std;
+
+
+struct Base {
+    int a = 1;
+    virtual ~Base() {}
+};
+
+struct Drv1 : Base {
+    void f() {
+        cout << "Drv1::f()" << endl;
+        cout << x << endl;
+    }
+    float x = 3.14;
+};
+
+struct Drv2 : Base {
+    void f() {
+        cout << "Drv2::f()" << endl;
+        cout << y << endl;
+    }
+    int y = 3;
+};
+
+int main() {
+
+    Base *b = new Drv1;
+    Drv1 *d1 = static_cast<Drv1*>(b);
+    Drv2 *d2 = static_cast<Drv2*>(b);
+
+    d1->f();
+    d2->f();
+
+    delete b;
+}
+```
+
+
+
+#### 12.7.3 RTTI와 dynamic_cast
+
+dynamic_cast : 동적으로 수행, 프로그램 실행 도중에 다운캐스팅을 수행, 런타임에 올바른 캐스팅인지 아닌지를 직접 검사하고 올바른 경우에만 성공적으로 캐스팅을 수행, 모든 검사가 런타임에 일어나기 때문에 객체의 실제 타입에 대한 정보를 얻어올 수 있음
+
+dynamic cast는 다형적 클래스 끼리만 사용 가능
+
+다형적 클래스 : 가상 소멸자 또는 가상 함수가 하나라고 있는 클래스
+
+RTTI : Run-Time Type Information/Identification, 런타임에 타입에 대한 정보를 가져올 수 있는 기능
+
+ex12-16.cpp 파일 생성
+
+```c++
+#include <iostream>
+#include <math.h>
+using namespace std;
+
+const double PI = 3.141592653589793;
+
+class Shape {
+    public:
+        virtual ~Shape() {}
+        virtual double GetArea() const =0;
+        virtual double Resize(double factor) =0;
+};
+
+class Circle : public Shape {
+    public:
+        Circle(double r) : r(r) {}
+        double GetArea() const {
+            return r * r * PI;
+        }
+        void Resize(double factor) {
+            r *= factor;
+        }
+
+    private:
+        double r;
+};
+
+class Rectangle : public Shape {
+    public:
+        Rectangle(double a, double b) : a(a), b(b) {}
+        double GetArea() const {
+            return a*b;
+        }
+        void Resize(double factor) {
+            a *= factor;
+            b *= factor;
+        }
+        double GetDiag() const {
+            return sqrt(a*a + b*b);
+        }
+    private:
+        double a, b;
+}
+
+
+int main() {
+
+    Shape *shapes[]  = {new Circle(1), new Rectangle(1,2)};
+
+    for (int i=0; i <2; i++) {
+        cout << "도형의 넓이 : " << shapes[i] -> GetArea() << endl;
+        Rectangle *r = dynamic_cast<Rectangle*>(shapes[i]);
+        if (r != NULL) {
+            cout << "대각선 길이 : " << r -> GetDiag() << endl;
+        }
+    }
+
+    for (int i =0; i < 2; i++) {
+        delete shapes[i];
+    }
+
+}
+```
+
+dynamic_cast는 성능이 떨어지므로 웬만하면 사용하지 않는 것이 좋고, 클래스 설계를 잘해서 dynamic_cast가 일어날 수 있는 상황을 피하는 것이 좋음
+
+
+
+### 12.8 객체지향 프로그래밍의 4대 원리
+
+#### 12.8.1 캡슐화
+
+캡슐화 : 데이터(멤버 변수)와 기능(메서드)을 하나의 단위로 묶어 놓는 것
+
+데이터 은닉 : 데이터를 보이지 않게 가리고, 데이터에 접근하기 위한 메서드만을 노출
+
+
+
+#### 12.8.2 상속성
+
+상속성 : 부모 클래스의 멤버를 재사용해서 자식 클래스에서도 사용할 수 있는 것
+
+
+
+#### 12.8.3 다형성
+
+다형성 : 한 클래스가 그로부터 파생된 다양한 형태를 지닐수 있다는 개념
+
+다형성을 통해 부모 클래스 타입의 포인터를 통해 자식 클래스의 객체를 가리킬 수 있음 -> 한 포인터가 여러 가지 자식 타입을 가리킬 수 있는 능력
+
+자식 클래스에 오버라이딩된 함수가 있다면 동적 바인딩이 일어남 
+
+오버라이딩과 가상 함수를 사용하는 상황이라면 다형성을 사용한 상황
+
+
+
+#### 12.8.4 추상화
+
+추상화 : 추상 클래스를 만들고 그것을 파생 클래스에서 오버라이딩하는 것
+
+부모 클래스에서는 클래스가 구현해야 할 기능만 명시(순수 가상함수)하고, 실제 구현은 자식 클래스에서 수행
+
+
+
+### 12.9 객체지향 프로그래밍의 문제점
+
+#### 12.9.1 다중 상속과 다이아몬드 문제
+
+다중 상속 : 한 클래스가 여러 클래스부터 상속을 받는 경우
+
+ex12-17.cpp 파일 생성
+
+```c++
+#include <iostream>
+
+using namespace std;
+
+
+struct Mom {
+    int a = 1;
+};
+
+struct Dad {
+    int b = 2;
+};
+
+struct Child : Mom, Dad {
+    int c = 3;
+};
+
+int main() {
+
+   Child ch;
+
+   cout << ch.a << endl;
+   cout << ch.b << endl;
+   cout << ch.c << endl;
+
+}
+```
+
+
+
+가상 상속 : 다이아몬드 문제를 해결하기 위해 활용
+
+ex12-18.cpp 파일 생성
+
+```c++
+#include <iostream>
+using namespace std;
+
+
+struct Person {
+    int age;
+    virtual ~Person() {}
+    void Eat() {
+        cout << "먹는다.." << endl;
+    }
+};
+
+struct Student : virtual Person {
+    void Study() {
+        cout << "공부한다.." << endl;
+    }
+};
+
+struct Worker : virtual Person {
+    void Work() {
+        cout << "일한다.." << endl;
+    }
+};
+
+struct Researcher : Student, Worker {
+
+};
+
+int main() {
+
+   Researcher r;
+   r.age = 20;
+
+   cout << r.age << endl;
+   cout << r.Student::age << endl;
+   cout << r.Worker::age << endl;
+   cout << r.Person::age << endl;
+
+   r.Eat();
+
+}
+```
+
+
+
+다중 상속은 인터페이스로부터만 받는다 -> 인터페이스 : 모든 메서드가 순수 가상 함수이고, 멤버 변수는 없는 클래스
+
+통상적으로 인터페이스는 이름 앞에 I를 붙임
+
+ex12-19.cpp 파일 생성
+
+```c++
+#include <iostream>
+using namespace std;
+
+
+class IPerson {
+    public:
+        virtual ~IPerson() {}
+        virtual void Eat() =0;
+        virtual void SetAge(int age) =0;
+        virtual void GetAge() =0;
+};
+
+class IStudent : public virtual IPerson {
+    public:
+        virtual void Study() = 0;
+};
+
+class IWorker : public virtual IPerson {
+    public:
+        virtual void Word() = 0;
+};
+
+
+class Researcher : public IStudent, IWorker {
+    public:
+        void Eat() {
+            cout << "먹는다.." << endl;
+        }
+        void Study() {
+            cout << "공부한다.." << endl;
+        }
+        void Work() {
+            cout << "일한다.." << endl;
+        }
+        void SetAge(int age) {
+            this -> age = age;
+        }
+        int GetAge() {
+            return age
+        }
+    private:
+        int age;
+};
+
+int main() {
+
+    Researcher r;
+    r.SetAge(20);
+    cout << r.GetAge() << endl;
+
+    IPerson *p = new Researcher;
+    p -> SetAge(20);
+    cout << p->GetAge() << endl;
+    delete p;
+}
+```
+
